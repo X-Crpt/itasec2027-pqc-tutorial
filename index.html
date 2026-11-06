@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Practical PQC Tutorial · ITASEC 2027</title>
+<meta name="description" content="Half-day tutorial at ITASEC 2027 (Siena) by EDGE Group and SMILIES, Politecnico di Torino: hardware/software design and secure implementation of post-quantum cryptography on RISC-V embedded systems.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Practical Post-Quantum Cryptography · ITASEC 2027 Tutorial">
+<meta property="og:description" content="Half-day tutorial at ITASEC 2027 (Siena) by EDGE Group and SMILIES, Politecnico di Torino: hardware/software design and secure implementation of post-quantum cryptography on RISC-V embedded systems.">
+<meta property="og:url" content="https://x-crpt.github.io/itasec2027-pqc-tutorial/">
+<meta property="og:image" content="https://x-crpt.github.io/itasec2027-pqc-tutorial/img/edge.png">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: a bright, single-theme conference page. EDGE indigo marks the
+   design half, SMILIES cyan marks the security half; SMILIES navy anchors
+   headings so both groups' identities sit side by side. Light by choice. */
+:root {
+  --bg: #ffffff;
+  --tint: #f2f6fc;
+  --fg: #1b2140;
+  --muted: #5a6280;
+  --line: #dfe5f0;
+  --navy: #2b388f;      /* SMILIES logo navy */
+  --indigo: #323070;    /* EDGE logo navy */
+  --cyan: #26a9e0;      /* SMILIES logo cyan */
+  --indigo-soft: #ebeaf6;
+  --cyan-soft: #e3f4fc;
+  --tbd-bg: #fff3d6;
+  --tbd-fg: #8a5d00;
+
+  --f-head: "Montserrat", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --maxw: 1100px;
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+html { background: var(--bg); }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--f-body); font-size: 18px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--navy); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
+
+.wrap {
+  max-width: var(--maxw); margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+section > .wrap { padding-block: 72px; }
+section.tinted { background: var(--tint); }
+
+h1, h2, h3 { font-family: var(--f-head); color: var(--navy); text-wrap: balance; margin: 0; line-height: 1.15; }
+h2 { font-size: clamp(27px, 3.6vw, 36px); font-weight: 700; letter-spacing: -.01em; }
+h3 { font-size: 20px; font-weight: 700; }
+p { margin: 0; }
+.kicker {
+  font-family: var(--f-head); font-size: 13px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--cyan);
+}
+.section-head { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; }
+.section-head > div { display: grid; gap: 10px; }
+
+.tbd {
+  display: inline-block; font-family: var(--f-head); font-size: 12px; font-weight: 600;
+  letter-spacing: .05em; background: var(--tbd-bg); color: var(--tbd-fg);
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+}
+
+/* ---------- Header ---------- */
+.top { border-bottom: 1px solid var(--line); background: var(--bg); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 14px; flex-wrap: wrap; }
+.logos { display: flex; align-items: center; gap: 18px; }
+.logos img.edge { height: 46px; width: auto; }
+.logos img.smilies { height: 38px; width: auto; }
+.top nav { display: flex; gap: 22px; flex-wrap: wrap; font-family: var(--f-head); font-size: 14px; font-weight: 600; }
+.top nav a { color: var(--fg); text-decoration: none; }
+.top nav a:hover { color: var(--cyan); }
+
+/* ---------- Hero ---------- */
+.hero { background: linear-gradient(160deg, var(--tint) 0%, var(--bg) 60%); position: relative; }
+.hero::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 5px;
+  background: linear-gradient(90deg, var(--indigo), var(--navy) 50%, var(--cyan));
+}
+.hero .wrap {
+  display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 56px; align-items: center; padding-block: 72px 80px;
+}
+.hero h1 { font-size: clamp(34px, 5vw, 54px); font-weight: 800; letter-spacing: -.02em; margin-top: 14px; }
+.hero h1 span { display: block; color: var(--cyan); font-weight: 700; font-size: .62em; letter-spacing: -.01em; margin-top: 12px; }
+.lede { margin-top: 22px; font-size: 20px; color: var(--muted); max-width: 54ch; }
+
+.facts { margin: 32px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.fact { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; align-content: start; }
+.fact dt { font-family: var(--f-head); font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.fact dd { margin: 0; font-weight: 600; font-size: 16.5px; }
+
+.cta { margin-top: 30px; display: flex; gap: 12px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px;
+  font-family: var(--f-head); font-weight: 600; font-size: 15px; text-decoration: none;
+  border: 2px solid var(--navy);
+}
+.btn.primary { background: var(--navy); color: #ffffff; }
+.btn.ghost { color: var(--navy); background: var(--bg); }
+.btn:hover { filter: brightness(1.1); }
+
+/* Journey card: algorithm down to secure silicon */
+.journey { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 10px; box-shadow: 0 12px 32px -18px rgba(43, 56, 143, .35); }
+.journey .cap { font-family: var(--f-head); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.step { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: start; }
+.step .dot {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--f-head); font-weight: 700; font-size: 14px; color: #ffffff; background: var(--indigo);
+}
+.step.sec .dot { background: var(--cyan); }
+.step b { font-family: var(--f-head); font-size: 15px; color: var(--fg); display: block; }
+.step small { color: var(--muted); font-size: 15px; }
+.step + .step { border-top: 1px dashed var(--line); padding-top: 10px; }
+
+/* ---------- About ---------- */
+.about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; margin-top: 8px; }
+.about .prose { display: grid; gap: 16px; max-width: 62ch; }
+.parts { margin-top: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.part { background: var(--bg); border-radius: 14px; padding: 26px; display: grid; gap: 12px; align-content: start; border: 1px solid var(--line); }
+.part .tagline { font-family: var(--f-head); font-size: 12.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.part.design .tagline { color: var(--indigo); }
+.part.sec .tagline { color: var(--cyan); }
+.part.design { border-top: 5px solid var(--indigo); }
+.part.sec { border-top: 5px solid var(--cyan); }
+.part ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; color: var(--muted); }
+
+/* ---------- Program ---------- */
+.program { margin-top: 32px; display: grid; gap: 10px; }
+.slot {
+  display: grid; grid-template-columns: 96px 80px minmax(0, 1fr);
+  gap: 20px; align-items: center; background: var(--bg);
+  border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px;
+}
+.slot .dur { font-family: var(--f-head); font-weight: 600; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slot .what { display: grid; gap: 2px; min-width: 0; }
+.slot .what strong { font-family: var(--f-head); font-size: 16px; color: var(--fg); }
+.slot .what span { color: var(--muted); font-size: 16px; }
+.slot.design { border-left: 5px solid var(--indigo); }
+.slot.sec { border-left: 5px solid var(--cyan); }
+.slot.break { background: transparent; border-style: dashed; }
+.slot.break strong { color: var(--muted); }
+.total { margin-top: 14px; color: var(--muted); font-size: 16px; }
+
+/* ---------- Audience ---------- */
+.aud { margin-top: 32px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+.pills { display: flex; flex-wrap: wrap; gap: 10px; align-content: start; }
+.pill { background: var(--cyan-soft); color: var(--navy); font-weight: 600; padding: 8px 16px; border-radius: 999px; font-size: 16px; }
+.take { background: var(--tint); border-radius: 14px; padding: 24px; display: grid; gap: 10px; }
+
+/* ---------- People ---------- */
+.people { margin-top: 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+.person { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 22px; display: grid; gap: 4px; align-content: start; }
+.avatar {
+  width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 10px;
+  font-family: var(--f-head); font-weight: 700; font-size: 18px; color: #ffffff;
+}
+.avatar.edge { background: var(--indigo); }
+.avatar.smilies { background: linear-gradient(135deg, var(--navy), var(--cyan)); }
+.person .name { font-family: var(--f-head); font-weight: 700; font-size: 17px; color: var(--fg); }
+.person .role { color: var(--muted); font-size: 15.5px; }
+.person .grp { margin-top: 8px; font-family: var(--f-head); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.person .grp.edge { color: var(--indigo); }
+.person .grp.smilies { color: var(--cyan); }
+
+/* ---------- Footer ---------- */
+footer { background: var(--navy); color: #ffffff; }
+footer .wrap { padding-block: 44px; display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 36px; font-size: 16px; }
+footer h4 { margin: 0 0 10px; font-family: var(--f-head); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #9fdcf5; }
+footer a { color: #ffffff; }
+footer .sub { color: #c9cfee; font-size: 15px; }
+footer .flogos { display: flex; align-items: center; gap: 16px; background: #ffffff; border-radius: 10px; padding: 10px 14px; width: fit-content; max-width: 100%; }
+footer .flogos img.edge { height: 40px; width: auto; }
+footer .flogos img.smilies { height: 32px; width: auto; }
+.copy { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.copy span { user-select: all; }
+.copy button {
+  font: inherit; font-size: 13px; padding: 2px 10px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: #ffffff; border: 1px solid #9fdcf5;
+}
+
+@media (max-width: 860px) {
+  .hero .wrap, .about, .parts, .aud { grid-template-columns: minmax(0, 1fr); }
+  .hero .wrap { gap: 40px; padding-block: 52px 56px; }
+  section > .wrap { padding-block: 52px; }
+  footer .wrap { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+}
+@media (max-width: 560px) {
+  .slot { grid-template-columns: auto 1fr; gap: 6px 14px; }
+  .slot .what { grid-column: 1 / -1; }
+  .logos img.edge { height: 38px; }
+  .logos img.smilies { height: 30px; }
+  .top nav { gap: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="logos">
+      <img class="edge" src="img/edge.png" alt="EDGE Group">
+      <img class="smilies" src="img/smilies.svg" alt="SMILIES">
+    </div>
+    <nav aria-label="Sections">
+      <a href="#about">About</a>
+      <a href="#program">Program</a>
+      <a href="#audience">Audience</a>
+      <a href="#speakers">Speakers</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <div class="kicker">ITASEC 2027 Tutorial · Siena</div>
+      <h1>Practical Post-Quantum Cryptography <span>From Hardware/Software Design to Secure Implementation</span></h1>
+      <p class="lede">A half-day tutorial on taking post-quantum cryptography from the standard onto real embedded devices, and checking that they stay secure against physical attacks.</p>
+
+      <dl class="facts">
+        <div class="fact"><dt>Tutorial date</dt><dd><span class="tbd">TBD</span></dd></div>
+        <div class="fact"><dt>ITASEC 2027</dt><dd>8–12 February 2027</dd></div>
+        <div class="fact"><dt>Venue</dt><dd>Santa Maria della Scala, Siena</dd></div>
+        <div class="fact"><dt>Duration</dt><dd>About 3 hours</dd></div>
+      </dl>
+
+      <div class="cta">
+        <a class="btn primary" href="https://itasec.it/" target="_blank" rel="noopener">ITASEC 2027 website</a>
+        <a class="btn ghost" href="#program">View the program</a>
+      </div>
+    </div>
+
+    <div class="journey" aria-label="The path the tutorial follows">
+      <div class="cap">What you will walk through</div>
+      <div class="step"><div class="dot">1</div><div><b>PQC algorithms</b><small>Representative schemes and their implementation profile</small></div></div>
+      <div class="step"><div class="dot">2</div><div><b>Bottlenecks</b><small>Polynomial arithmetic, hashing, memory</small></div></div>
+      <div class="step"><div class="dot">3</div><div><b>Hardware/software split</b><small>Software, ISA extension or accelerator on RISC-V</small></div></div>
+      <div class="step sec"><div class="dot">4</div><div><b>Secure implementation</b><small>Side channels, faults and countermeasures</small></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="wrap">
+    <div class="about">
+      <div style="display:grid;gap:10px;align-content:start">
+        <div class="kicker">About the tutorial</div>
+        <h2>The standard is set. Implementing it well is the open problem.</h2>
+      </div>
+      <div class="prose">
+        <p>Standardized post-quantum cryptography is moving toward deployment, but running an algorithm on a real device involves decisions the standard does not settle. Embedded platforms have to handle demanding kernels and memory requirements while keeping secret data safe from implementation attacks.</p>
+        <p>This tutorial connects both sides: making PQC practical through hardware/software design, and evaluating whether the resulting implementation is secure. Short case studies and demonstrations link each design decision to a measurable outcome.</p>
+      </div>
+    </div>
+
+    <div class="parts">
+      <article class="part design">
+        <div class="tagline">Part 1 · Design</div>
+        <h3>Hardware/software design for PQC</h3>
+        <ul>
+          <li>Implementation characteristics of representative PQC schemes</li>
+          <li>Finding bottlenecks in polynomial arithmetic and hash-based operations</li>
+          <li>Choosing between software, an instruction extension or a dedicated accelerator</li>
+          <li>Accelerator interfaces, data movement and memory footprint on RISC-V</li>
+          <li>Performance and energy of complete PQC operations</li>
+        </ul>
+      </article>
+      <article class="part sec">
+        <div class="tagline">Part 2 · Security</div>
+        <h3>Secure implementation of PQC</h3>
+        <ul>
+          <li>Side-channel and fault-injection threats relevant to PQC</li>
+          <li>Constant-time execution, masking and fault detection</li>
+          <li>Protecting keys and intermediate state</li>
+          <li>The processor–accelerator boundary: data transfers, shared resources and control signals</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="program" class="tinted">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Program</div>
+        <h2>Tentative program</h2>
+      </div>
+    </div>
+
+    <div class="program">
+      <div class="slot"><span class="tbd">TBD</span>
+        <div class="what"><strong>Program to be announced</strong></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="audience">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Who should attend</div>
+        <h2>For security people who work with real devices</h2>
+      </div>
+    </div>
+    <div class="aud">
+      <div class="pills">
+        <span class="pill">Cryptographic engineering</span>
+        <span class="pill">Embedded and IoT security</span>
+        <span class="pill">Secure hardware</span>
+        <span class="pill">Quantum-resistant deployment</span>
+        <span class="pill">Security evaluation</span>
+      </div>
+      <div class="take">
+        <h3>What you will take away</h3>
+        <p>A practical method for evaluating a PQC implementation: characterize the workload, pick the hardware/software boundary, measure the complete system, and assess its security.</p>
+        <p style="color:var(--muted)">No prior experience with accelerator design is required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="speakers" class="tinted">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Speakers</div>
+        <h2>Organizers and speakers</h2>
+      </div>
+    </div>
+    <div class="people">
+      <div class="person">
+        <div class="avatar edge" aria-hidden="true">AD</div>
+        <div class="name">Alessandra Dolmeta</div>
+        <div class="role">Postdoctoral Researcher, Politecnico di Torino</div>
+        <div class="grp edge">EDGE Group</div>
+      </div>
+      <div class="person">
+        <div class="avatar smilies" aria-hidden="true">SDC</div>
+        <div class="name">Stefano Di Carlo</div>
+        <div class="role">Professor, Politecnico di Torino</div>
+        <div class="grp smilies">SMILIES</div>
+      </div>
+      <div class="person">
+        <div class="avatar smilies" aria-hidden="true">AS</div>
+        <div class="name">Alessandro Savino</div>
+        <div class="role">Professor, Politecnico di Torino</div>
+        <div class="grp smilies">SMILIES</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div style="display:grid;gap:12px;align-content:start">
+      <h4>Organized by</h4>
+      <div class="flogos">
+        <img class="edge" src="img/edge.png" alt="EDGE Group">
+        <img class="smilies" src="img/smilies.svg" alt="SMILIES">
+      </div>
+      <p class="sub">Politecnico di Torino</p>
+    </div>
+    <div>
+      <h4>Part of</h4>
+      <p><a href="https://itasec.it/" target="_blank" rel="noopener">ITASEC 2027</a>, Siena</p>
+      <p class="sub">Organized by CINI Cybersecurity National Lab and SERICS Foundation</p>
+    </div>
+    <div>
+      <h4>Contact</h4>
+      <div class="copy">
+        <span id="mail">alessandra.dolmeta@polito.it</span>
+        <button type="button" id="copy-mail">Copy</button>
+      </div>
+      <p class="sub" style="margin-top:10px">
+        <a href="https://edge-group-polito.github.io/" target="_blank" rel="noopener">EDGE Group</a> ·
+        <a href="https://www.smilies.polito.it/" target="_blank" rel="noopener">SMILIES</a>
+      </p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var btn = document.getElementById('copy-mail');
+    var mail = document.getElementById('mail');
+    btn.addEventListener('click', function () {
+      var select = function () {
+        var r = document.createRange(); r.selectNodeContents(mail);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        btn.textContent = 'Selected';
+      };
+      try {
+        navigator.clipboard.writeText(mail.textContent).then(function () {
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+        }, select);
+      } catch (e) { select(); }
+    });
+  })();
+</script>
+</body>
+</html>
